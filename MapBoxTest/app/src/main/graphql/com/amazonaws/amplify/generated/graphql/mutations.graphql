@@ -1,0 +1,52 @@
+# this is an auto generated file. This will be overwritten
+mutation CreateWalk(
+  $input: CreateWalkInput!
+  $condition: ModelWalkConditionInput
+) {
+  createWalk(input: $input, condition: $condition) {
+    id
+    title
+    description
+    duration
+    creator
+    _version
+    _deleted
+    _lastChangedAt
+    createdAt
+    updatedAt
+  }
+}
+mutation UpdateWalk(
+  $input: UpdateWalkInput!
+  $condition: ModelWalkConditionInput
+) {
+  updateWalk(input: $input, condition: $condition) {
+    id
+    title
+    description
+    duration
+    creator
+    _version
+    _deleted
+    _lastChangedAt
+    createdAt
+    updatedAt
+  }
+}
+mutation DeleteWalk(
+  $input: DeleteWalkInput!
+  $condition: ModelWalkConditionInput
+) {
+  deleteWalk(input: $input, condition: $condition) {
+    id
+    title
+    description
+    duration
+    creator
+    _version
+    _deleted
+    _lastChangedAt
+    createdAt
+    updatedAt
+  }
+}

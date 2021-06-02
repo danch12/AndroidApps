@@ -1,0 +1,13 @@
+type Walk @model {
+  id: ID!
+  title: String!
+  description: String
+  duration: Int
+  creator: String
+  startLat: Float
+  startLon: Float
+  endLon: Float
+  endLat: Float
+  songIds: [String!]!
+}
+

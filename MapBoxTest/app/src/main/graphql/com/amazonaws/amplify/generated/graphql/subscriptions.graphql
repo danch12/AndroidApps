@@ -1,0 +1,43 @@
+# this is an auto generated file. This will be overwritten
+subscription OnCreateWalk {
+  onCreateWalk {
+    id
+    title
+    description
+    duration
+    creator
+    _version
+    _deleted
+    _lastChangedAt
+    createdAt
+    updatedAt
+  }
+}
+subscription OnUpdateWalk {
+  onUpdateWalk {
+    id
+    title
+    description
+    duration
+    creator
+    _version
+    _deleted
+    _lastChangedAt
+    createdAt
+    updatedAt
+  }
+}
+subscription OnDeleteWalk {
+  onDeleteWalk {
+    id
+    title
+    description
+    duration
+    creator
+    _version
+    _deleted
+    _lastChangedAt
+    createdAt
+    updatedAt
+  }
+}
