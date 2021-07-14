@@ -4,10 +4,14 @@ type Walk @model {
   description: String
   duration: Int
   creator: String
-  startLat: Float
-  startLon: Float
-  endLon: Float
-  endLat: Float
-  songIds: [String!]!
+  startLat: Float!
+  startLon: Float!
+  endLon: Float!
+  endLat: Float!
+  playlistID: String!
 }
 
+type Comment @model {
+    text: String!
+    walkId: String!
+}

@@ -10,10 +10,17 @@ import android.graphics.Color;
 import android.location.Location;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 import android.widget.Toast;
 
+import com.amplifyframework.core.Amplify;
+import com.amplifyframework.datastore.generated.model.Walk;
 import com.mapbox.android.core.location.LocationEngine;
 import com.mapbox.android.core.location.LocationEngineCallback;
 import com.mapbox.android.core.location.LocationEngineProvider;
@@ -28,7 +35,6 @@ import com.mapbox.api.directions.v5.models.DirectionsRoute;
 import com.mapbox.geojson.LineString;
 import com.mapbox.geojson.Point;
 import com.mapbox.mapboxsdk.Mapbox;
-import com.mapbox.mapboxsdk.annotations.Marker;
 import com.mapbox.mapboxsdk.location.LocationComponent;
 import com.mapbox.mapboxsdk.location.LocationComponentActivationOptions;
 import com.mapbox.mapboxsdk.location.modes.CameraMode;
@@ -47,6 +53,9 @@ import com.spotify.android.appremote.api.SpotifyAppRemote;
 import java.lang.ref.WeakReference;
 import java.util.List;
 
+import kaaes.spotify.webapi.android.SpotifyApi;
+import kaaes.spotify.webapi.android.models.UserPrivate;
+import retrofit.RetrofitError;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -65,11 +74,13 @@ public class JourneyActivity extends AppCompatActivity implements
     private MapView mapView;
     private PermissionsManager permissionsManager;
     private LocationEngine locationEngine;
-    private Marker destinationMarker;
     private Button playButton;
     private Point originPosition;
     private Point destinationPosition;
     private DirectionsRoute currentRoute;
+    private String playlistId;
+    private String userId;
+    private String bearerToken;
     private LocationChangeListeningActivityLocationCallback callback =
             new LocationChangeListeningActivityLocationCallback(this);
     private MapboxDirections client;
@@ -79,13 +90,15 @@ public class JourneyActivity extends AppCompatActivity implements
     private SpotifyAppRemote mSpotifyAppRemote;
     private static final String CLIENT_ID = "6a0a2cda4c70430794d5aa1f29d0a060";
     private static final String REDIRECT_URI = "https://www.google.com/";
+    private static final String EXTRA_PLAYLIST = "PLAYLIST TOKEN";
     private boolean currentlyPlaying;
 
-    public static Intent createIntent(Context context, Point destination, Point origin, String token){
+    public static Intent createIntent(Context context, Point destination, Point origin, String token,String playlistId){
         Intent intent = new Intent(context, JourneyActivity.class);
         intent.putExtra(GenreScreenActivity.EXTRA_DESTINATION,destination);
         intent.putExtra(GenreScreenActivity.EXTRA_ORIGIN,origin);
         intent.putExtra(GenreScreenActivity.EXTRA_TOKEN,token);
+        intent.putExtra(JourneyActivity.EXTRA_PLAYLIST,playlistId);
         return intent;
     }
 
@@ -118,13 +131,28 @@ public class JourneyActivity extends AppCompatActivity implements
             }
         });
         Intent intent = getIntent();
+        playlistId = intent.getStringExtra(JourneyActivity.EXTRA_PLAYLIST);
+        Log.d(TAG, "onCreate: "+playlistId);
         destinationPosition = (Point)intent.getSerializableExtra(GenreScreenActivity.EXTRA_DESTINATION);
         originPosition =(Point)intent.getSerializableExtra(GenreScreenActivity.EXTRA_ORIGIN);
         mapView = findViewById(R.id.mapView);
         mapView.onCreate(savedInstanceState);
         mapView.getMapAsync(this);
 
-    }
+        bearerToken = intent.getStringExtra(GenreScreenActivity.EXTRA_TOKEN);
+        SpotifyApi kaesApi = new SpotifyApi();
+        kaesApi.setAccessToken(bearerToken);
+        kaesApi.getService().getMe(new retrofit.Callback<UserPrivate>() {
+            @Override
+            public void success(UserPrivate userPrivate, retrofit.client.Response response) {
+                userId=userPrivate.id;
+            }
+            @Override
+            public void failure(RetrofitError error) {
+                Log.d(TAG, "failure: " + error);
+            }
+        });
+        }
 
 
     @Override
@@ -160,6 +188,7 @@ public class JourneyActivity extends AppCompatActivity implements
             @Override
             public void onConnected(SpotifyAppRemote spotifyAppRemote) {
                 mSpotifyAppRemote = spotifyAppRemote;
+
                 playButton.setEnabled(true);
                 Log.d("MainActivity", "Connected to main Spotify api");
             }
@@ -349,7 +378,7 @@ public class JourneyActivity extends AppCompatActivity implements
 
     private static class LocationChangeListeningActivityLocationCallback
             implements LocationEngineCallback<LocationEngineResult> {
-
+        private static final double THETA = 0.01;
         private final WeakReference<JourneyActivity> activityWeakReference;
 
         LocationChangeListeningActivityLocationCallback(JourneyActivity activity) {
@@ -382,9 +411,71 @@ public class JourneyActivity extends AppCompatActivity implements
                 if (activity.mapboxMap != null && result.getLastLocation() != null) {
 
                     activity.mapboxMap.getLocationComponent().forceLocationUpdate(result.getLastLocation());
+                }
 
+                if (activity.mapboxMap != null && result.getLastLocation() != null){
+                    if(destinationInArea(activity.destinationPosition,result)){
+                        LayoutInflater inflater = (LayoutInflater)
+                                activity.getSystemService(LAYOUT_INFLATER_SERVICE);
+                        View popupView = inflater.inflate(R.layout.popup_screen_new, null);
+                        // create the popup window
+                        int width = LinearLayout.LayoutParams.WRAP_CONTENT;
+                        int height = LinearLayout.LayoutParams.WRAP_CONTENT;
+                        // lets taps outside the popup also dismiss it
+                        boolean focusable = true;
+                        final PopupWindow popupWindow = new PopupWindow(popupView, width, height, focusable);
+                        Button addSongButton =popupView.findViewById(R.id.popup_button);
+                        addSongButton.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                Walk playListWalk = Walk.builder().title("something")
+                                        .startLat(activity.originPosition.latitude())
+                                        .startLon(activity.originPosition.longitude())
+                                        .endLon(activity.destinationPosition.longitude())
+                                        .endLat(activity.destinationPosition.latitude())
+                                        .playlistId(activity.playlistId)
+                                        .duration(0)
+                                        .creator(activity.userId)
+                                        .build();
+                                Amplify.DataStore.save(playListWalk,
+                                        success -> Log.i("Tutorial", "Saved item: "+success.item().getTitle()),
+                                        error -> Log.e("Tutorial", "Could not save item to DataStore", error));
+                                addSongButton.setEnabled(false);
+                            }
+                        });
+
+                        Button returnToMain = popupView.findViewById(R.id.popup_button_return);
+                        returnToMain.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                Intent intent = MainActivity.createIntent(activity,activity.bearerToken);
+                                activity.startActivity(intent);
+                                activity.finish();
+                            }
+                        });
+
+                        View view = activity.findViewById(R.id.mapView);
+                        popupWindow.showAtLocation(view, Gravity.CENTER, 0, 0);
+                        popupView.setOnTouchListener(new View.OnTouchListener() {
+                            @Override
+                            public boolean onTouch(View v, MotionEvent event) {
+                                popupWindow.dismiss();
+                                return true;
+                            }
+                        });
+                    }
                 }
             }
+        }
+
+
+        private boolean destinationInArea(Point destinationPosition,LocationEngineResult result) {
+            if(Math.abs(destinationPosition.latitude()- result.getLastLocation().getLatitude())<THETA){
+                if(Math.abs(destinationPosition.longitude()- result.getLastLocation().getLongitude())<THETA){
+                    return true;
+                }
+            }
+            return false;
         }
 
         /**

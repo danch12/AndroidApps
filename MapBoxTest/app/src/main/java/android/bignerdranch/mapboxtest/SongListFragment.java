@@ -18,6 +18,7 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.mapbox.geojson.Point;
 import com.spotify.android.appremote.api.ConnectionParams;
 import com.spotify.android.appremote.api.Connector;
@@ -53,8 +54,10 @@ public abstract class SongListFragment extends Fragment {
     protected static SpotifyApi kaesApi;
     protected Point journeyDestination;
     protected Point journeyOrigin;
+    protected String playlistId;
 
-    private class SongHolder extends RecyclerView.ViewHolder /*implements View.OnClickListener*/{
+
+    private class SongHolder extends RecyclerView.ViewHolder {
         private TextView mTitleTextView;
         private TextView mArtistTextView;
         private Song mSong;
@@ -72,11 +75,6 @@ public abstract class SongListFragment extends Fragment {
             mArtistTextView.setText(mSong.getSongArtist());
         }
 
-        /*@Override
-        public void onClick(View view){
-            Intent intent = MainActivity.newIntent(getActivity(),mCrime.getId());
-            startActivity(intent);
-        }*/
     }
     private class SongAdapter extends RecyclerView.Adapter<SongListFragment.SongHolder>{
         private List<Song> mSongs;
@@ -133,6 +131,25 @@ public abstract class SongListFragment extends Fragment {
         double journeyTime = getArguments().getDouble(GenreScreenActivity.EXTRA_JOURNEY);
         journeyDestination = (Point)getArguments().getSerializable(GenreScreenActivity.EXTRA_DESTINATION);
         journeyOrigin =(Point)getArguments().getSerializable(GenreScreenActivity.EXTRA_ORIGIN);
+
+        FloatingActionButton playButton = view.findViewById(R.id.floating_button);
+        playButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                createPlaylist();
+            }
+        });
+
+        FloatingActionButton refresh_button = view.findViewById(R.id.refresh_button);
+        refresh_button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                updateUI(genre,journeyTime);
+                mSongAdapter.notifyDataSetChanged();
+            }
+
+        });
+
         kaesApi = new SpotifyApi();
         kaesApi.setAccessToken(bearerToken);
         kaesApi.getService().getMe(new Callback<UserPrivate>() {
@@ -173,15 +190,12 @@ public abstract class SongListFragment extends Fragment {
     @Override
     public boolean onOptionsItemSelected(MenuItem item){
         if (item.getItemId() == R.id.confirm_songs) {
-            playSongs();
-            Intent intent = JourneyActivity.createIntent(getActivity(),journeyDestination,
-                    journeyOrigin,bearerToken);
-            startActivity(intent);
+            transitionAndPlay();
         }
         return super.onOptionsItemSelected(item);
     }
 
-    public void playSongs(){
+    public void transitionAndPlay(){
         if(mSpotifyAppRemote==null){
             Log.d(TAG, "playSongs: isnull");
         }else{
@@ -208,6 +222,10 @@ public abstract class SongListFragment extends Fragment {
                     public void success(Pager<PlaylistTrack> playlistTrackPager, Response response) {
                         Log.d(TAG, "success: "+playlist.id);
                         mSpotifyAppRemote.getPlayerApi().play("spotify:playlist:"+playlist.id);
+                        playlistId = playlist.id;
+                        Intent intent = JourneyActivity.createIntent(getActivity(),journeyDestination,
+                                journeyOrigin,bearerToken,playlistId);
+                        startActivity(intent);
                     }
 
                     @Override

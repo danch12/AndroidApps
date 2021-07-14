@@ -12,8 +12,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.MapBoxTest">
-        <activity android:name=".ExistingPlaylistTabActivity"></activity>
-        <activity android:name=".ExistingPlaylistActivity" />
+        <activity android:name=".ExistingPlaylistJourney"></activity>
+        <activity android:name=".ExistingPlaylistTabActivity" />
         <activity android:name=".JourneyActivity" />
         <activity android:name=".MainActivity" />
         <activity android:name=".GenreScreenActivity" />

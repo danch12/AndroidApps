@@ -9,6 +9,11 @@ mutation CreateWalk(
     description
     duration
     creator
+    startLat
+    startLon
+    endLon
+    endLat
+    playlistID
     _version
     _deleted
     _lastChangedAt
@@ -26,6 +31,11 @@ mutation UpdateWalk(
     description
     duration
     creator
+    startLat
+    startLon
+    endLon
+    endLat
+    playlistID
     _version
     _deleted
     _lastChangedAt
@@ -43,6 +53,56 @@ mutation DeleteWalk(
     description
     duration
     creator
+    startLat
+    startLon
+    endLon
+    endLat
+    playlistID
+    _version
+    _deleted
+    _lastChangedAt
+    createdAt
+    updatedAt
+  }
+}
+mutation CreateComment(
+  $input: CreateCommentInput!
+  $condition: ModelCommentConditionInput
+) {
+  createComment(input: $input, condition: $condition) {
+    id
+    text
+    walkId
+    _version
+    _deleted
+    _lastChangedAt
+    createdAt
+    updatedAt
+  }
+}
+mutation UpdateComment(
+  $input: UpdateCommentInput!
+  $condition: ModelCommentConditionInput
+) {
+  updateComment(input: $input, condition: $condition) {
+    id
+    text
+    walkId
+    _version
+    _deleted
+    _lastChangedAt
+    createdAt
+    updatedAt
+  }
+}
+mutation DeleteComment(
+  $input: DeleteCommentInput!
+  $condition: ModelCommentConditionInput
+) {
+  deleteComment(input: $input, condition: $condition) {
+    id
+    text
+    walkId
     _version
     _deleted
     _lastChangedAt

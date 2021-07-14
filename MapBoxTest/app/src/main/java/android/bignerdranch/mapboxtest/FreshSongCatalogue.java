@@ -19,17 +19,16 @@ import kaaes.spotify.webapi.android.models.Recommendations;
 import kaaes.spotify.webapi.android.models.Track;
 import retrofit.client.Response;
 
-public class SongCatalogue {
+public class FreshSongCatalogue {
     private final List<Song> songs;
     public static final String TAG = "SongCatalogue";
     private final SpotifyApi api;
     private final SongListFragment songList;
     private final double journeyTime;
     private final String genre;
-    double totalDuration;
 
-    public SongCatalogue(SpotifyApi api, double journeyTime, String genre, SongListFragment songList){
-        totalDuration=0;
+
+    public FreshSongCatalogue(SpotifyApi api, double journeyTime, String genre, SongListFragment songList){
         this.api = api;
         this.journeyTime=journeyTime;
         this.songList=songList;
@@ -37,8 +36,9 @@ public class SongCatalogue {
         this.genre = genre;
     }
 
-    private void formatSongs(Recommendations recommendations){
 
+    private void formatSongs(Recommendations recommendations){
+        double totalDuration=0;
         for(Track track:recommendations.tracks){
             Song song = new Song(track,track.artists.get(0).name,track.name,track.id,track.duration_ms/1000.0);
             songs.add(song);
@@ -50,7 +50,6 @@ public class SongCatalogue {
         if(journeyTime>totalDuration){
             getSongs();
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-
                 getDistinct();
             }
         }
@@ -82,7 +81,6 @@ public class SongCatalogue {
 
             }
         });
-
 
         return songs;
     }

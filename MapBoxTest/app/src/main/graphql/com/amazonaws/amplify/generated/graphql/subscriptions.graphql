@@ -6,6 +6,11 @@ subscription OnCreateWalk {
     description
     duration
     creator
+    startLat
+    startLon
+    endLon
+    endLat
+    playlistID
     _version
     _deleted
     _lastChangedAt
@@ -20,6 +25,11 @@ subscription OnUpdateWalk {
     description
     duration
     creator
+    startLat
+    startLon
+    endLon
+    endLat
+    playlistID
     _version
     _deleted
     _lastChangedAt
@@ -34,6 +44,47 @@ subscription OnDeleteWalk {
     description
     duration
     creator
+    startLat
+    startLon
+    endLon
+    endLat
+    playlistID
+    _version
+    _deleted
+    _lastChangedAt
+    createdAt
+    updatedAt
+  }
+}
+subscription OnCreateComment {
+  onCreateComment {
+    id
+    text
+    walkId
+    _version
+    _deleted
+    _lastChangedAt
+    createdAt
+    updatedAt
+  }
+}
+subscription OnUpdateComment {
+  onUpdateComment {
+    id
+    text
+    walkId
+    _version
+    _deleted
+    _lastChangedAt
+    createdAt
+    updatedAt
+  }
+}
+subscription OnDeleteComment {
+  onDeleteComment {
+    id
+    text
+    walkId
     _version
     _deleted
     _lastChangedAt

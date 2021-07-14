@@ -28,17 +28,17 @@ public final class Walk implements Model {
   public static final QueryField START_LON = field("Walk", "startLon");
   public static final QueryField END_LON = field("Walk", "endLon");
   public static final QueryField END_LAT = field("Walk", "endLat");
-  public static final QueryField SONG_IDS = field("Walk", "songIds");
+  public static final QueryField PLAYLIST_ID = field("Walk", "playlistID");
   private final @ModelField(targetType="ID", isRequired = true) String id;
   private final @ModelField(targetType="String", isRequired = true) String title;
   private final @ModelField(targetType="String") String description;
   private final @ModelField(targetType="Int") Integer duration;
   private final @ModelField(targetType="String") String creator;
-  private final @ModelField(targetType="Float") Double startLat;
-  private final @ModelField(targetType="Float") Double startLon;
-  private final @ModelField(targetType="Float") Double endLon;
-  private final @ModelField(targetType="Float") Double endLat;
-  private final @ModelField(targetType="String", isRequired = true) List<String> songIds;
+  private final @ModelField(targetType="Float", isRequired = true) Double startLat;
+  private final @ModelField(targetType="Float", isRequired = true) Double startLon;
+  private final @ModelField(targetType="Float", isRequired = true) Double endLon;
+  private final @ModelField(targetType="Float", isRequired = true) Double endLat;
+  private final @ModelField(targetType="String", isRequired = true) String playlistID;
   public String getId() {
       return id;
   }
@@ -75,11 +75,11 @@ public final class Walk implements Model {
       return endLat;
   }
   
-  public List<String> getSongIds() {
-      return songIds;
+  public String getPlaylistId() {
+      return playlistID;
   }
   
-  private Walk(String id, String title, String description, Integer duration, String creator, Double startLat, Double startLon, Double endLon, Double endLat, List<String> songIds) {
+  private Walk(String id, String title, String description, Integer duration, String creator, Double startLat, Double startLon, Double endLon, Double endLat, String playlistID) {
     this.id = id;
     this.title = title;
     this.description = description;
@@ -89,7 +89,7 @@ public final class Walk implements Model {
     this.startLon = startLon;
     this.endLon = endLon;
     this.endLat = endLat;
-    this.songIds = songIds;
+    this.playlistID = playlistID;
   }
   
   @Override
@@ -109,7 +109,7 @@ public final class Walk implements Model {
               ObjectsCompat.equals(getStartLon(), walk.getStartLon()) &&
               ObjectsCompat.equals(getEndLon(), walk.getEndLon()) &&
               ObjectsCompat.equals(getEndLat(), walk.getEndLat()) &&
-              ObjectsCompat.equals(getSongIds(), walk.getSongIds());
+              ObjectsCompat.equals(getPlaylistId(), walk.getPlaylistId());
       }
   }
   
@@ -125,7 +125,7 @@ public final class Walk implements Model {
       .append(getStartLon())
       .append(getEndLon())
       .append(getEndLat())
-      .append(getSongIds())
+      .append(getPlaylistId())
       .toString()
       .hashCode();
   }
@@ -143,7 +143,7 @@ public final class Walk implements Model {
       .append("startLon=" + String.valueOf(getStartLon()) + ", ")
       .append("endLon=" + String.valueOf(getEndLon()) + ", ")
       .append("endLat=" + String.valueOf(getEndLat()) + ", ")
-      .append("songIds=" + String.valueOf(getSongIds()))
+      .append("playlistID=" + String.valueOf(getPlaylistId()))
       .append("}")
       .toString();
   }
@@ -195,15 +195,35 @@ public final class Walk implements Model {
       startLon,
       endLon,
       endLat,
-      songIds);
+      playlistID);
   }
   public interface TitleStep {
-    SongIdsStep title(String title);
+    StartLatStep title(String title);
   }
   
 
-  public interface SongIdsStep {
-    BuildStep songIds(List<String> songIds);
+  public interface StartLatStep {
+    StartLonStep startLat(Double startLat);
+  }
+  
+
+  public interface StartLonStep {
+    EndLonStep startLon(Double startLon);
+  }
+  
+
+  public interface EndLonStep {
+    EndLatStep endLon(Double endLon);
+  }
+  
+
+  public interface EndLatStep {
+    PlaylistIdStep endLat(Double endLat);
+  }
+  
+
+  public interface PlaylistIdStep {
+    BuildStep playlistId(String playlistId);
   }
   
 
@@ -213,24 +233,20 @@ public final class Walk implements Model {
     BuildStep description(String description);
     BuildStep duration(Integer duration);
     BuildStep creator(String creator);
-    BuildStep startLat(Double startLat);
-    BuildStep startLon(Double startLon);
-    BuildStep endLon(Double endLon);
-    BuildStep endLat(Double endLat);
   }
   
 
-  public static class Builder implements TitleStep, SongIdsStep, BuildStep {
+  public static class Builder implements TitleStep, StartLatStep, StartLonStep, EndLonStep, EndLatStep, PlaylistIdStep, BuildStep {
     private String id;
     private String title;
-    private List<String> songIds;
-    private String description;
-    private Integer duration;
-    private String creator;
     private Double startLat;
     private Double startLon;
     private Double endLon;
     private Double endLat;
+    private String playlistID;
+    private String description;
+    private Integer duration;
+    private String creator;
     @Override
      public Walk build() {
         String id = this.id != null ? this.id : UUID.randomUUID().toString();
@@ -245,20 +261,48 @@ public final class Walk implements Model {
           startLon,
           endLon,
           endLat,
-          songIds);
+          playlistID);
     }
     
     @Override
-     public SongIdsStep title(String title) {
+     public StartLatStep title(String title) {
         Objects.requireNonNull(title);
         this.title = title;
         return this;
     }
     
     @Override
-     public BuildStep songIds(List<String> songIds) {
-        Objects.requireNonNull(songIds);
-        this.songIds = songIds;
+     public StartLonStep startLat(Double startLat) {
+        Objects.requireNonNull(startLat);
+        this.startLat = startLat;
+        return this;
+    }
+    
+    @Override
+     public EndLonStep startLon(Double startLon) {
+        Objects.requireNonNull(startLon);
+        this.startLon = startLon;
+        return this;
+    }
+    
+    @Override
+     public EndLatStep endLon(Double endLon) {
+        Objects.requireNonNull(endLon);
+        this.endLon = endLon;
+        return this;
+    }
+    
+    @Override
+     public PlaylistIdStep endLat(Double endLat) {
+        Objects.requireNonNull(endLat);
+        this.endLat = endLat;
+        return this;
+    }
+    
+    @Override
+     public BuildStep playlistId(String playlistId) {
+        Objects.requireNonNull(playlistId);
+        this.playlistID = playlistId;
         return this;
     }
     
@@ -277,30 +321,6 @@ public final class Walk implements Model {
     @Override
      public BuildStep creator(String creator) {
         this.creator = creator;
-        return this;
-    }
-    
-    @Override
-     public BuildStep startLat(Double startLat) {
-        this.startLat = startLat;
-        return this;
-    }
-    
-    @Override
-     public BuildStep startLon(Double startLon) {
-        this.startLon = startLon;
-        return this;
-    }
-    
-    @Override
-     public BuildStep endLon(Double endLon) {
-        this.endLon = endLon;
-        return this;
-    }
-    
-    @Override
-     public BuildStep endLat(Double endLat) {
-        this.endLat = endLat;
         return this;
     }
     
@@ -327,42 +347,22 @@ public final class Walk implements Model {
   
 
   public final class CopyOfBuilder extends Builder {
-    private CopyOfBuilder(String id, String title, String description, Integer duration, String creator, Double startLat, Double startLon, Double endLon, Double endLat, List<String> songIds) {
+    private CopyOfBuilder(String id, String title, String description, Integer duration, String creator, Double startLat, Double startLon, Double endLon, Double endLat, String playlistId) {
       super.id(id);
       super.title(title)
-        .songIds(songIds)
-        .description(description)
-        .duration(duration)
-        .creator(creator)
         .startLat(startLat)
         .startLon(startLon)
         .endLon(endLon)
-        .endLat(endLat);
+        .endLat(endLat)
+        .playlistId(playlistId)
+        .description(description)
+        .duration(duration)
+        .creator(creator);
     }
     
     @Override
      public CopyOfBuilder title(String title) {
       return (CopyOfBuilder) super.title(title);
-    }
-    
-    @Override
-     public CopyOfBuilder songIds(List<String> songIds) {
-      return (CopyOfBuilder) super.songIds(songIds);
-    }
-    
-    @Override
-     public CopyOfBuilder description(String description) {
-      return (CopyOfBuilder) super.description(description);
-    }
-    
-    @Override
-     public CopyOfBuilder duration(Integer duration) {
-      return (CopyOfBuilder) super.duration(duration);
-    }
-    
-    @Override
-     public CopyOfBuilder creator(String creator) {
-      return (CopyOfBuilder) super.creator(creator);
     }
     
     @Override
@@ -383,6 +383,26 @@ public final class Walk implements Model {
     @Override
      public CopyOfBuilder endLat(Double endLat) {
       return (CopyOfBuilder) super.endLat(endLat);
+    }
+    
+    @Override
+     public CopyOfBuilder playlistId(String playlistId) {
+      return (CopyOfBuilder) super.playlistId(playlistId);
+    }
+    
+    @Override
+     public CopyOfBuilder description(String description) {
+      return (CopyOfBuilder) super.description(description);
+    }
+    
+    @Override
+     public CopyOfBuilder duration(Integer duration) {
+      return (CopyOfBuilder) super.duration(duration);
+    }
+    
+    @Override
+     public CopyOfBuilder creator(String creator) {
+      return (CopyOfBuilder) super.creator(creator);
     }
   }
   

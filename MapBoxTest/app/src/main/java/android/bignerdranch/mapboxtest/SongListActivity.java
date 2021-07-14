@@ -29,7 +29,7 @@ public class SongListActivity extends SingleFragmentActivity{
 
     @Override
     protected Fragment createFragment(){
-        Fragment fragment = new ExistingSongFragment();
+        Fragment fragment = new FreshSongFragment();
         Bundle bundle = new Bundle();
         bundle.putCharSequence(SongListActivity.EXTRA_TOKEN,getIntent().getStringExtra(SongListActivity.EXTRA_TOKEN));
         bundle.putCharSequence(SongListActivity.GENRE_TOKEN,getIntent().getStringExtra(SongListActivity.GENRE_TOKEN));

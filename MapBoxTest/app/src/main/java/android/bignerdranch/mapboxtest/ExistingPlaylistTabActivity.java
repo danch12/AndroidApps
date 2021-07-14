@@ -30,12 +30,13 @@ public class ExistingPlaylistTabActivity extends AppCompatActivity {
     private TabLayout tabLayout;
     private ViewPager viewPager;
     private ViewPageAdapter adapter;
+    static final String EXTRA_ID = "EXTRA_ID";
 
     public static Intent createIntent(Context context, String accessToken, double journeyDuration,
                                       String id, Point destination, Point origin){
-        Intent intent =  new Intent(context, SongListActivity.class);
+        Intent intent =  new Intent(context, ExistingPlaylistTabActivity.class);
         intent.putExtra(SongListActivity.EXTRA_TOKEN, accessToken);
-        intent.putExtra(ExistingPlaylistActivity.EXTRA_ID, id);
+        intent.putExtra(ExistingPlaylistTabActivity.EXTRA_ID, id);
         intent.putExtra(SongListActivity.EXTRA_JOURNEY, journeyDuration);
         intent.putExtra(SongListActivity.EXTRA_DESTINATION,destination);
         intent.putExtra(SongListActivity.EXTRA_ORIGIN,origin);
@@ -47,8 +48,6 @@ public class ExistingPlaylistTabActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         Log.d(TAG, "onCreate: "+"start");
         setContentView(R.layout.activity_existing_playlist_tab);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
         viewPager = (ViewPager) findViewById(R.id.viewpager_id);
         PagerAdapter pagerAdapter = new PagerAdapter(getSupportFragmentManager(),
                 ExistingPlaylistTabActivity.this);
@@ -56,10 +55,7 @@ public class ExistingPlaylistTabActivity extends AppCompatActivity {
 
         TabLayout tabLayout = (TabLayout) findViewById(R.id.tabLayout_id);
         tabLayout.setupWithViewPager(viewPager);
-        for (int i = 0; i < tabLayout.getTabCount(); i++) {
-            TabLayout.Tab tab = tabLayout.getTabAt(i);
-            tab.setCustomView(pagerAdapter.getTabView(i));
-        }
+
         ActionBar actionBar = getSupportActionBar();
         actionBar.setElevation(0);
         Log.d(TAG, "onCreate: "+"hello");
@@ -73,9 +69,18 @@ public class ExistingPlaylistTabActivity extends AppCompatActivity {
         Bundle bundle = new Bundle();
         bundle.putCharSequence(SongListActivity.EXTRA_TOKEN,getIntent().getStringExtra(SongListActivity.EXTRA_TOKEN));
         bundle.putCharSequence(SongListActivity.GENRE_TOKEN,"rock");
+        bundle.putCharSequence(ExistingPlaylistTabActivity.EXTRA_ID,getIntent().getStringExtra(ExistingPlaylistTabActivity.EXTRA_ID));
         bundle.putSerializable(SongListActivity.EXTRA_DESTINATION,getIntent().getSerializableExtra(SongListActivity.EXTRA_DESTINATION));
         bundle.putSerializable(SongListActivity.EXTRA_ORIGIN,getIntent().getSerializableExtra(SongListActivity.EXTRA_ORIGIN));
         bundle.putDouble(SongListActivity.EXTRA_JOURNEY,getIntent().getDoubleExtra(SongListActivity.EXTRA_JOURNEY,0));
+        fragment.setArguments(bundle);
+        return fragment;
+    }
+
+    private Fragment createCommentFragment(){
+        Fragment fragment = new CommentTabFragment();
+        Bundle bundle = new Bundle();
+        bundle.putCharSequence(ExistingPlaylistTabActivity.EXTRA_ID,getIntent().getStringExtra(ExistingPlaylistTabActivity.EXTRA_ID));
         fragment.setArguments(bundle);
         return fragment;
     }
@@ -102,7 +107,7 @@ public class ExistingPlaylistTabActivity extends AppCompatActivity {
                 case 0:
                     return createSongFragment();
                 case 1:
-                    return createSongFragment();
+                    return createCommentFragment();
             }
 
             return null;
@@ -114,24 +119,6 @@ public class ExistingPlaylistTabActivity extends AppCompatActivity {
             return tabTitles[position];
         }
 
-        public View getTabView(int position) {
-            View tab = LayoutInflater.from(ExistingPlaylistTabActivity.this).inflate(R.layout.activity_existing_playlist_tab, null);
-            TextView tv = (TextView) tab.findViewById(R.id.tabLayout_id);
-            tv.setText(tabTitles[position]);
-            return tab;
-        }
-
-        protected Fragment createSongFragment(){
-            Fragment fragment = new ExistingSongFragment();
-            Bundle bundle = new Bundle();
-            bundle.putCharSequence(SongListActivity.EXTRA_TOKEN,getIntent().getStringExtra(SongListActivity.EXTRA_TOKEN));
-            bundle.putCharSequence(SongListActivity.GENRE_TOKEN,"rock");
-            bundle.putSerializable(SongListActivity.EXTRA_DESTINATION,getIntent().getSerializableExtra(SongListActivity.EXTRA_DESTINATION));
-            bundle.putSerializable(SongListActivity.EXTRA_ORIGIN,getIntent().getSerializableExtra(SongListActivity.EXTRA_ORIGIN));
-            bundle.putDouble(SongListActivity.EXTRA_JOURNEY,getIntent().getDoubleExtra(SongListActivity.EXTRA_JOURNEY,0));
-            fragment.setArguments(bundle);
-            return fragment;
-        }
 
     }
 

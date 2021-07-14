@@ -13,6 +13,7 @@ import com.amplifyframework.api.aws.AWSApiPlugin;
 import com.amplifyframework.core.Amplify;
 import com.amplifyframework.core.model.query.Where;
 import com.amplifyframework.datastore.AWSDataStorePlugin;
+import com.amplifyframework.datastore.generated.model.Comment;
 import com.amplifyframework.datastore.generated.model.Walk;
 import com.spotify.sdk.android.authentication.AuthenticationClient;
 import com.spotify.sdk.android.authentication.AuthenticationRequest;
@@ -40,24 +41,43 @@ public class LoginActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
         try {
+            Amplify.addPlugin(new AWSApiPlugin());
             Amplify.addPlugin(new AWSDataStorePlugin());
             Amplify.configure(getApplicationContext());
 
-            Log.i("Tutorial", "Initialized Amplify");
+            Log.i("Login", "Initialized Amplify");
         } catch (AmplifyException e) {
-            Log.e("Tutorial", "Could not initialize Amplify", e);
+            Log.e("Login", "Could not initialize Amplify", e);
         }
-        List<String> songIds = new ArrayList<>();
-        songIds.add("23499kk");
-        songIds.add("09999iii");
-        Walk nwalk = Walk.builder().title("another walk").songIds(songIds).creator("sam")
+       /* Amplify.DataStore.clear(()-> Log.i("amplify","successfully cleared"),
+                error-> Log.i("amplify","didnt clear- " +error)
+                                    );*/
+        Walk nwalk = Walk.builder().title("another walk")
                 .startLat(51.462711).startLon(-2.590040)
-                .endLat(51.469175).endLon(-2.608024).build();
+                .endLon(-2.608024).endLat(51.469175)
+                .playlistId("5tALyid8xag8f5bt2yr2iP").duration(10).creator("1143043561").build();
+
         /*Amplify.DataStore.save(nwalk,
                 success -> Log.i("Tutorial", "Saved item: " + success.item().getTitle()),
                 error -> Log.e("Tutorial", "Could not save item to DataStore", error)
         );*/
+        Comment ncomment = Comment.builder().text("hello").walkId("1").build();
+       /* Amplify.DataStore.save(ncomment,
+                success -> Log.i("Tutorial", "Saved item: " + success.item().getText()),
+                error -> Log.e("Tutorial", "Could not save item to DataStore", error)
+        );
+        Comment againcomment = Comment.builder().text("goodbye").walkId("1").build();
+        Amplify.DataStore.save(againcomment,
+                success -> Log.i("Tutorial", "Saved item: " + success.item().getText()),
+                error -> Log.e("Tutorial", "Could not save item to DataStore", error)
+        );*/
 
+        Amplify.DataStore.observe(Walk.class,
+                started -> Log.i("Tutorial", "Observation began."),
+                change -> Log.i("Tutorial", change.item().toString()),
+                failure -> Log.e("Tutorial", "Observation failed.", failure),
+                () -> Log.i("Tutorial", "Observation complete.")
+        );
     }
 
     public void onLoginButtonClicked(View view) {
@@ -100,8 +120,7 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void startMainActivity(String token) {
-        Intent intent = MainActivity.createIntent(this);
-        intent.putExtra(MainActivity.EXTRA_TOKEN, token);
+        Intent intent = MainActivity.createIntent(this,token);
         startActivity(intent);
         finish();
     }

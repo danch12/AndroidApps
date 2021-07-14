@@ -10,6 +10,16 @@
     android:paddingTop="16dp"
     tools:context=".LoginActivity">
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/button"
+
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="24dp"
+        android:text="@string/this_app_creates_playlists_for_walks_n_press_the_button_to_login_your_spotify_account"
+        android:textAlignment="center"/>
+
     <Button
         android:id="@+id/button"
         android:layout_width="wrap_content"

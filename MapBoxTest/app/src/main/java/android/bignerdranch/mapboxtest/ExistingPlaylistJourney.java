@@ -3,17 +3,24 @@ package android.bignerdranch.mapboxtest;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.BitmapFactory;
 import android.graphics.Color;
-import android.graphics.PointF;
 import android.location.Location;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+
 import com.amplifyframework.core.Amplify;
+import com.amplifyframework.core.model.query.Where;
 import com.amplifyframework.datastore.generated.model.Walk;
 import com.mapbox.android.core.location.LocationEngine;
 import com.mapbox.android.core.location.LocationEngineCallback;
@@ -22,183 +29,191 @@ import com.mapbox.android.core.location.LocationEngineRequest;
 import com.mapbox.android.core.location.LocationEngineResult;
 import com.mapbox.android.core.permissions.PermissionsListener;
 import com.mapbox.android.core.permissions.PermissionsManager;
-
 import com.mapbox.api.directions.v5.DirectionsCriteria;
 import com.mapbox.api.directions.v5.MapboxDirections;
 import com.mapbox.api.directions.v5.models.DirectionsResponse;
 import com.mapbox.api.directions.v5.models.DirectionsRoute;
-import com.mapbox.geojson.Feature;
-import com.mapbox.geojson.FeatureCollection;
 import com.mapbox.geojson.LineString;
 import com.mapbox.geojson.Point;
 import com.mapbox.mapboxsdk.Mapbox;
-import com.mapbox.mapboxsdk.annotations.Marker;
-import com.mapbox.mapboxsdk.annotations.MarkerOptions;
-import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.location.LocationComponent;
 import com.mapbox.mapboxsdk.location.LocationComponentActivationOptions;
-import com.mapbox.mapboxsdk.location.LocationUpdate;
 import com.mapbox.mapboxsdk.location.modes.CameraMode;
 import com.mapbox.mapboxsdk.location.modes.RenderMode;
 import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
 import com.mapbox.mapboxsdk.maps.Style;
-import com.mapbox.mapboxsdk.plugins.annotation.OnSymbolClickListener;
-import com.mapbox.mapboxsdk.plugins.annotation.Symbol;
-import com.mapbox.mapboxsdk.plugins.annotation.SymbolManager;
-import com.mapbox.mapboxsdk.plugins.annotation.SymbolOptions;
-import com.mapbox.mapboxsdk.plugins.markerview.MarkerViewManager;
 import com.mapbox.mapboxsdk.style.layers.LineLayer;
 import com.mapbox.mapboxsdk.style.layers.Property;
-import com.mapbox.mapboxsdk.style.layers.PropertyValue;
-import com.mapbox.mapboxsdk.style.layers.SymbolLayer;
-import com.mapbox.mapboxsdk.style.sources.GeoJsonOptions;
 import com.mapbox.mapboxsdk.style.sources.GeoJsonSource;
-import com.mapbox.mapboxsdk.style.sources.Source;
-import com.mapbox.mapboxsdk.utils.BitmapUtils;
+import com.spotify.android.appremote.api.ConnectionParams;
+import com.spotify.android.appremote.api.Connector;
+import com.spotify.android.appremote.api.SpotifyAppRemote;
 
 import java.lang.ref.WeakReference;
-import java.util.ArrayList;
 import java.util.List;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-
+import kaaes.spotify.webapi.android.SpotifyApi;
+import kaaes.spotify.webapi.android.models.UserPrivate;
+import retrofit.RetrofitError;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
 import static com.mapbox.core.constants.Constants.PRECISION_6;
-import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.iconAllowOverlap;
-import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.iconIgnorePlacement;
-import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.iconImage;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.lineCap;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.lineColor;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.lineJoin;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.lineWidth;
 
-/**
- * Use the Mapbox Core Library to receive updates when the device changes location.
- */
-public class MainActivity extends AppCompatActivity implements
-        OnMapReadyCallback, PermissionsListener, MapboxMap.OnMapClickListener {
-
+public class ExistingPlaylistJourney extends AppCompatActivity implements
+        OnMapReadyCallback, PermissionsListener {
     private static final long DEFAULT_INTERVAL_IN_MILLISECONDS = 1000L;
     private static final long DEFAULT_MAX_WAIT_TIME = DEFAULT_INTERVAL_IN_MILLISECONDS * 5;
     private MapboxMap mapboxMap;
     private MapView mapView;
     private PermissionsManager permissionsManager;
     private LocationEngine locationEngine;
-    private Marker destinationMarker;
+    private Button playButton;
+    private Point originPosition;
+    private Point wayPoint;
+    private Point destinationPosition;
+    private DirectionsRoute currentRoute;
+    private String userId;
+    private String walkID;
+    private String bearerToken;
     private LocationChangeListeningActivityLocationCallback callback =
             new LocationChangeListeningActivityLocationCallback(this);
     private MapboxDirections client;
-
-
-    private List<Feature> surroundingWalks;
-
-
-    private Point originPosition;
-    private Point destinationPosition;
-    private DirectionsRoute currentRoute;
-    private Double routeDuration;
-    private Button goButton;
-    private String accessToken;
-    private SymbolManager symbolManager;
-    private String TAG = "MainActivity";
-    static final String EXTRA_TOKEN = "EXTRA_TOKEN";
     private static final String ROUTE_LAYER_ID = "route-layer-id";
     private static final String ROUTE_SOURCE_ID = "route-source-id";
-    private static final String SOURCE_ID = "SOURCE_ID";
-    private static final String ICON_ID = "ICON_ID";
-    private static final String LAYER_ID = "LAYER_ID";
+    private static final String TAG = "JourneyActivity";
+    private SpotifyAppRemote mSpotifyAppRemote;
+    private static final String CLIENT_ID = "6a0a2cda4c70430794d5aa1f29d0a060";
+    private static final String REDIRECT_URI = "https://www.google.com/";
+    private static final String EXTRA_WAYPOINT = "WAYPOINT TOKEN";
+    private static final String EXTRA_WALK = "WALK TOKEN";
+    private boolean currentlyPlaying;
+    private boolean playlistActivated;
 
-
-    public static Intent createIntent(Context context,String token) {
-        Intent intent = new Intent(context, MainActivity.class);
-        intent.putExtra(MainActivity.EXTRA_TOKEN, token);
+    public static Intent createIntent(Context context, Point destination, Point origin, String token,Point wayPoint,String walkId){
+        Intent intent = new Intent(context, ExistingPlaylistJourney.class);
+        intent.putExtra(GenreScreenActivity.EXTRA_DESTINATION,destination);
+        intent.putExtra(GenreScreenActivity.EXTRA_ORIGIN,origin);
+        intent.putExtra(GenreScreenActivity.EXTRA_TOKEN,token);
+        intent.putExtra(ExistingPlaylistJourney.EXTRA_WAYPOINT,wayPoint);
+        intent.putExtra(ExistingPlaylistJourney.EXTRA_WALK,walkId);
         return intent;
     }
-
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        surroundingWalks = createMarkers();
-        // Mapbox access token is configured here. This needs to be called either in your application
-        // object or in the same activity which contains the mapview.
+
+
         Mapbox.getInstance(this, getString(R.string.access_token));
 
         // This contains the MapView in XML and needs to be called after the access token is configured.
-        setContentView(R.layout.activity_main);
-        goButton = (Button) findViewById(R.id.button3);
-        goButton.setEnabled(false);
-        goButton.setOnClickListener(new View.OnClickListener() {
+        setContentView(R.layout.activity_journey);
+        playButton = (Button) findViewById(R.id.playButton);
+        playButton.setEnabled(false);
+        connectToSpotify();
+        currentlyPlaying=true;
+        playButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent =GenreScreenActivity.createIntent(MainActivity.this,accessToken,
-                        routeDuration,destinationPosition,originPosition);
-                startActivity(intent);
+                if(currentlyPlaying){
+                    mSpotifyAppRemote.getPlayerApi().pause();
+                    currentlyPlaying=false;
+                }else{
+                    mSpotifyAppRemote.getPlayerApi().resume();
+                    currentlyPlaying=true;
+                }
+
             }
         });
         Intent intent = getIntent();
-        accessToken = intent.getStringExtra(EXTRA_TOKEN);
+        walkID = intent.getStringExtra(ExistingPlaylistJourney.EXTRA_WALK);
+        wayPoint = (Point) intent.getSerializableExtra(ExistingPlaylistJourney.EXTRA_WAYPOINT);
+        destinationPosition = (Point)intent.getSerializableExtra(GenreScreenActivity.EXTRA_DESTINATION);
+        originPosition =(Point)intent.getSerializableExtra(GenreScreenActivity.EXTRA_ORIGIN);
         mapView = findViewById(R.id.mapView);
         mapView.onCreate(savedInstanceState);
         mapView.getMapAsync(this);
+        playlistActivated=false;
+        bearerToken = intent.getStringExtra(GenreScreenActivity.EXTRA_TOKEN);
+        SpotifyApi kaesApi = new SpotifyApi();
+        kaesApi.setAccessToken(bearerToken);
+        kaesApi.getService().getMe(new retrofit.Callback<UserPrivate>() {
+            @Override
+            public void success(UserPrivate userPrivate, retrofit.client.Response response) {
+                userId=userPrivate.id;
+            }
+            @Override
+            public void failure(RetrofitError error) {
+                Log.d(TAG, "failure: " + error);
+            }
+        });
     }
 
 
-    public List<Feature> createMarkers(){
-        List<Feature> surroundingWalks = new ArrayList<>();
-        Amplify.DataStore.query(Walk.class,
-                walks -> {
-                    while (walks.hasNext()) {
-                        Walk walk = walks.next();
-                        Feature feature =Feature.fromGeometry(Point.fromLngLat(walk.getStartLon(),
-                                walk.getStartLat()));
-                        feature.addStringProperty("id",walk.getId());
-                        feature.addNumberProperty("startLat",walk.getStartLat());
-                        feature.addNumberProperty("startLon",walk.getStartLon());
-                        feature.addNumberProperty("endLat",walk.getEndLat());
-                        feature.addNumberProperty("endLon",walk.getEndLon());
 
-                        surroundingWalks.add(feature);
-                    }
-                },
-                failure -> Log.e("Tutorial", "Could not query DataStore", failure)
-        );
-        return surroundingWalks;
-    }
+
 
     @Override
     public void onMapReady(@NonNull final MapboxMap mapboxMap) {
         this.mapboxMap = mapboxMap;
-        mapboxMap.setStyle(new Style.Builder().fromUri(Style.TRAFFIC_NIGHT)
-                        .withImage(ICON_ID, BitmapFactory.decodeResource(
-                MainActivity.this.getResources(), R.drawable.mapbox_marker_icon_default))
-                        .withSource(new GeoJsonSource(SOURCE_ID,FeatureCollection.fromFeatures(surroundingWalks)))
-                        .withLayer(new SymbolLayer(LAYER_ID, SOURCE_ID).withProperties(
-                                iconImage(ICON_ID),
-                                iconAllowOverlap(true),
-                                iconIgnorePlacement(true)))
-                ,new Style.OnStyleLoaded() {
+
+        mapboxMap.setStyle(Style.TRAFFIC_NIGHT,
+                new Style.OnStyleLoaded() {
                     @Override public void onStyleLoaded(@NonNull Style style) {
                         enableLocationComponent(style);
                         initLayers(style);
                     }
-                }
-        );
-        mapboxMap.addOnMapClickListener(this);
+                });
+
+
+        client = MapboxDirections.builder()
+                .origin(originPosition)
+                .addWaypoint(wayPoint)
+                .destination(destinationPosition)
+                .overview(DirectionsCriteria.OVERVIEW_FULL)
+                .profile(DirectionsCriteria.PROFILE_WALKING)
+                .accessToken(getString(R.string.access_token))
+                .build();
+        getRoute();
+
+    }
+
+    private void connectToSpotify(){
+        ConnectionParams connectionParams =
+                new ConnectionParams.Builder(CLIENT_ID)
+                        .setRedirectUri(REDIRECT_URI)
+                        .showAuthView(true)
+                        .build();
+        SpotifyAppRemote.connect(ExistingPlaylistJourney.this,connectionParams,new Connector.ConnectionListener(){
+            @Override
+            public void onConnected(SpotifyAppRemote spotifyAppRemote) {
+                mSpotifyAppRemote = spotifyAppRemote;
+
+                playButton.setEnabled(true);
+                Log.d("MainActivity", "Connected to main Spotify api");
+            }
+            @Override
+            public void onFailure(Throwable throwable) {
+                Log.e("MainActivity", throwable.getMessage(), throwable);
+            }
+        });
+
     }
 
     private void initLayers(@NonNull Style loadedMapStyle) {
         loadedMapStyle.addSource(new GeoJsonSource(ROUTE_SOURCE_ID));
         LineLayer routeLayer = new LineLayer(ROUTE_LAYER_ID, ROUTE_SOURCE_ID);
-        
-// Add the LineLayer to the map. This layer will display the directions route.
+
+        // Add the LineLayer to the map. This layer will display the directions route.
         routeLayer.setProperties(
                 lineCap(Property.LINE_CAP_ROUND),
                 lineJoin(Property.LINE_JOIN_ROUND),
@@ -261,8 +276,6 @@ public class MainActivity extends AppCompatActivity implements
         permissionsManager.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 
-
-
     //if user rejects permissions access we give dialogue to convince them to give us it
     @Override
     public void onExplanationNeeded(List<String> permissionsToExplain) {
@@ -285,77 +298,12 @@ public class MainActivity extends AppCompatActivity implements
         }
     }
 
-    @Override
-    public boolean onMapClick(LatLng point){
 
-        PointF screenPoint = mapboxMap.getProjection().toScreenLocation(point);
-        List<Feature> features = mapboxMap.queryRenderedFeatures(screenPoint, LAYER_ID);
-        if (!features.isEmpty()) {
-            // we received a click event on the callout layer
-            Feature feature = features.get(0);
-            PointF symbolScreenPoint = mapboxMap.getProjection().toScreenLocation(convertToLatLng(feature));
-            destinationPosition =Point.fromLngLat((double)feature.getNumberProperty("endLon"),
-                    (double)feature.getNumberProperty("endLat"));
-            Point origin = Point.fromLngLat((double)feature.getNumberProperty("startLon"),
-                   (double)feature.getNumberProperty("startLat"));
-            getRoute(origin,destinationPosition);
-            if(destinationMarker!=null){
-                mapboxMap.removeMarker(destinationMarker);
-            }
-            destinationMarker=mapboxMap.addMarker(new MarkerOptions().position(new LatLng((double)feature.getNumberProperty("endLat"),
-                    (double)feature.getNumberProperty("endLon"))).setTitle("end point"));
-            goButton.setOnClickListener(new View.OnClickListener(){
-                @Override
-                public void onClick(View v) {
-                    Intent intent =ExistingPlaylistTabActivity.createIntent(MainActivity.this,accessToken,
-                            routeDuration,feature.getStringProperty("id"),
-                            destinationPosition,originPosition);
-                    startActivity(intent);
-                }
-            });
-            goButton.setEnabled(true);
-
-        }else{
-            if(destinationMarker!=null){
-                mapboxMap.removeMarker(destinationMarker);
-            }
-            destinationMarker=mapboxMap.addMarker(new MarkerOptions().position(point).setTitle("end point"));
-            destinationPosition = Point.fromLngLat(point.getLongitude(),point.getLatitude());
-            getRoute(originPosition,destinationPosition);
-            goButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    Intent intent =GenreScreenActivity.createIntent(MainActivity.this,accessToken,
-                            routeDuration,destinationPosition,originPosition);
-                    startActivity(intent);
-                }
-            });
-            goButton.setEnabled(true);
-
-        }
-        return true;
-    }
-
-
-    private LatLng convertToLatLng(Feature feature) {
-        Point symbolPoint = (Point) feature.geometry();
-        return new LatLng(symbolPoint.latitude(), symbolPoint.longitude());
-    }
-
-    private void getRoute(Point origin, Point destination){
-        client = MapboxDirections.builder()
-                .origin(origin)
-                .destination(destination)
-                .overview(DirectionsCriteria.OVERVIEW_FULL)
-                .profile(DirectionsCriteria.PROFILE_WALKING)
-                .accessToken(getString(R.string.access_token))
-                .build();
+    private void getRoute(){
         client.enqueueCall(new Callback<DirectionsResponse>() {
             @Override public void onResponse(Call<DirectionsResponse> call, Response<DirectionsResponse> response) {
 
                 if (response.body() == null) {
-                    Log.e(TAG, "onResponse: "+response.message() );
-                    Log.e(TAG, "onResponse: "+response.code() );
                     Log.e(TAG,"No routes found, make sure you set the right user and access token.");
                     return;
                 } else if (response.body().routes().size() < 1) {
@@ -365,8 +313,6 @@ public class MainActivity extends AppCompatActivity implements
 
                 // Retrieve the directions route from the API response
                 currentRoute = response.body().routes().get(0);
-                Log.d(TAG, "onResponse: "+currentRoute.toString());
-                routeDuration = response.body().routes().get(0).duration();
                 mapboxMap.getStyle(new Style.OnStyleLoaded() {
                     @Override
                     public void onStyleLoaded(@NonNull Style style) {
@@ -387,59 +333,6 @@ public class MainActivity extends AppCompatActivity implements
                 Log.e(TAG, "Error: " + throwable.getMessage());
             }
         });
-    }
-
-    private static class LocationChangeListeningActivityLocationCallback
-            implements LocationEngineCallback<LocationEngineResult> {
-
-        private final WeakReference<MainActivity> activityWeakReference;
-        LocationChangeListeningActivityLocationCallback(MainActivity activity) {
-            this.activityWeakReference = new WeakReference<>(activity);
-        }
-
-        /**
-         * The LocationEngineCallback interface's method which fires when the device's location has changed.
-         *
-         * @param result the LocationEngineResult object which has the last known location within it.
-         */
-        @Override
-        public void onSuccess(LocationEngineResult result) {
-            MainActivity activity = activityWeakReference.get();
-
-            if (activity != null) {
-                Location location = result.getLastLocation();
-                if (location == null) {
-                    return;
-                }
-                activity.originPosition = Point.fromLngLat(location.getLongitude(),location.getLatitude());
-                // Create a Toast which displays the new location's coordinates
-                Toast.makeText(activity, String.format(activity.getString(R.string.new_location),
-                        String.valueOf(result.getLastLocation().getLatitude()),
-                        String.valueOf(result.getLastLocation().getLongitude())),
-                        Toast.LENGTH_SHORT).show();
-
-                // Pass the new location to the Maps SDK's LocationComponent
-                if (activity.mapboxMap != null && result.getLastLocation() != null) {
-                    activity.mapboxMap.getLocationComponent().forceLocationUpdate(result.getLastLocation());
-                }
-
-            }
-        }
-
-
-        /**
-         * The LocationEngineCallback interface's method which fires when the device's location can't be captured
-         *
-         * @param exception the exception message
-         */
-        @Override
-        public void onFailure(@NonNull Exception exception) {
-            MainActivity activity = activityWeakReference.get();
-            if (activity != null) {
-                Toast.makeText(activity, exception.getLocalizedMessage(),
-                        Toast.LENGTH_SHORT).show();
-            }
-        }
     }
 
     @Override
@@ -463,6 +356,7 @@ public class MainActivity extends AppCompatActivity implements
     @Override
     protected void onStop() {
         super.onStop();
+        SpotifyAppRemote.disconnect(mSpotifyAppRemote);
         mapView.onStop();
     }
 
@@ -487,4 +381,142 @@ public class MainActivity extends AppCompatActivity implements
         super.onLowMemory();
         mapView.onLowMemory();
     }
+
+
+
+
+    private static class LocationChangeListeningActivityLocationCallback
+            implements LocationEngineCallback<LocationEngineResult> {
+        private static final double THETA = 0.01;
+        private final WeakReference<ExistingPlaylistJourney> activityWeakReference;
+
+        LocationChangeListeningActivityLocationCallback(ExistingPlaylistJourney activity) {
+            this.activityWeakReference = new WeakReference<>(activity);
+        }
+
+        /**
+         * The LocationEngineCallback interface's method which fires when the device's location has changed.
+         *
+         * @param result the LocationEngineResult object which has the last known location within it.
+         */
+        @Override
+        public void onSuccess(LocationEngineResult result) {
+            ExistingPlaylistJourney activity = activityWeakReference.get();
+
+            if (activity != null) {
+
+                Location location = result.getLastLocation();
+                if (location == null) {
+                    return;
+                }
+                activity.originPosition = Point.fromLngLat(location.getLongitude(),location.getLatitude());
+                // Create a Toast which displays the new location's coordinates
+                Toast.makeText(activity, String.format(activity.getString(R.string.new_location),
+                        String.valueOf(result.getLastLocation().getLatitude()),
+                        String.valueOf(result.getLastLocation().getLongitude())),
+                        Toast.LENGTH_SHORT).show();
+
+                // Pass the new location to the Maps SDK's LocationComponent
+                if (activity.mapboxMap != null && result.getLastLocation() != null) {
+
+                    activity.mapboxMap.getLocationComponent().forceLocationUpdate(result.getLastLocation());
+                }
+
+                if (activity.mapboxMap != null && result.getLastLocation() != null){
+                    if(destinationInArea(activity.destinationPosition,result)){
+                        createPopup();
+                    }
+                }
+
+                if (activity.mapboxMap != null && result.getLastLocation() != null){
+                    if(destinationInArea(activity.wayPoint,result)){
+                        playSongs();
+                    }
+                }
+            }
+        }
+
+        public void playSongs(){
+
+            ExistingPlaylistJourney activity = activityWeakReference.get();
+            if(activity.playlistActivated){
+                return;
+            }
+            if(activity.mSpotifyAppRemote==null){
+                Log.d(TAG, "playSongs: isnull");
+            }else{
+                Amplify.DataStore.query(Walk.class, Where.matches(Walk.ID.eq(activity.walkID)), response->{
+                            if(response.hasNext()){
+                                Walk walk =response.next();
+                                String playlistId = walk.getPlaylistId();
+                                activity.mSpotifyAppRemote.getPlayerApi().play("spotify:playlist:" +playlistId);
+                                activity.playlistActivated = true;
+                            }else{
+                                Log.d(TAG, "playSongs: " + "none found" );
+                            }
+                        }, error -> Log.e("MyAmplifyApp", "Query failure", error)
+
+                );
+            }
+
+        }
+
+
+        private void createPopup(){
+            ExistingPlaylistJourney activity = activityWeakReference.get();
+            LayoutInflater inflater = (LayoutInflater)
+                    activity.getSystemService(LAYOUT_INFLATER_SERVICE);
+            View popupView = inflater.inflate(R.layout.popup_screen_existing, null);
+            // create the popup window
+            int width = LinearLayout.LayoutParams.WRAP_CONTENT;
+            int height = LinearLayout.LayoutParams.WRAP_CONTENT;
+            // lets taps outside the popup also dismiss it
+            boolean focusable = true;
+            final PopupWindow popupWindow = new PopupWindow(popupView, width, height, focusable);
+
+            Button returnToMain = popupView.findViewById(R.id.popup_button_return);
+            returnToMain.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Intent intent = MainActivity.createIntent(activity,activity.bearerToken);
+                    activity.mSpotifyAppRemote.getPlayerApi().pause();
+                    activity.startActivity(intent);
+                    activity.finish();
+                }
+            });
+
+            View view = activity.findViewById(R.id.mapView);
+            popupWindow.showAtLocation(view, Gravity.CENTER, 0, 0);
+            popupView.setOnTouchListener(new View.OnTouchListener() {
+                @Override
+                public boolean onTouch(View v, MotionEvent event) {
+                    popupWindow.dismiss();
+                    return true;
+                }
+            });
+        }
+
+
+        private boolean destinationInArea(Point destinationPosition,LocationEngineResult result) {
+            if(Math.abs(destinationPosition.latitude()- result.getLastLocation().getLatitude())<THETA){
+                return Math.abs(destinationPosition.longitude() - result.getLastLocation().getLongitude()) < THETA;
+            }
+            return false;
+        }
+
+        /**
+         * The LocationEngineCallback interface's method which fires when the device's location can't be captured
+         *
+         * @param exception the exception message
+         */
+        @Override
+        public void onFailure(@NonNull Exception exception) {
+            ExistingPlaylistJourney activity = activityWeakReference.get();
+            if (activity != null) {
+                Toast.makeText(activity, exception.getLocalizedMessage(),
+                        Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
 }
